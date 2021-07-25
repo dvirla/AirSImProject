@@ -1,37 +1,7 @@
 import itertools
 import numpy as np
 from sklearn.cluster import KMeans
-from scipy.sparse.csgraph import dijkstra
 import matplotlib.pyplot as plt
-
-
-def shortest_cycle(pos, max_distance):
-    graph = np.sqrt(np.sum(np.square(np.expand_dims(pos, 0) - np.expand_dims(pos, 1)), axis=2))
-    graph = np.triu(graph)
-    path, min_cost = None, None
-    for i in range(1, pos.shape[0]):
-        weight = graph[0, i]
-        limit = max(max_distance - weight, 0)
-        graph[0, i] = 0
-        # noinspection PyTupleAssignmentBalance
-        dist_matrix, predecessors = dijkstra(graph, directed=False, indices=0, return_predecessors=True, limit=limit)
-        graph[0, i] = weight
-        cost = dist_matrix[i] + weight
-        if not min_cost or cost < min_cost:
-            min_cost = cost
-            path = [i]
-            while predecessors[path[-1]] != -9999:
-                path.append(predecessors[path[-1]])
-            path.reverse()
-    if min_cost == np.inf:
-        closest = np.argmin(graph[0, 1:]) + 1
-        min_cost = 2 * graph[0, closest]
-        if min_cost < max_distance:
-            path = [0, closest]
-        else:
-            min_cost = np.inf
-            path = None
-    return path, min_cost
 
 
 def best_route(pos, max_distance):
@@ -40,14 +10,14 @@ def best_route(pos, max_distance):
     n = pos.shape[0]
     routes = []
     costs = []
-    for perm in itertools.permutations(range(1, n), n - 1):
+    for perm in itertools.permutations(range(1, n), n - 1):  # Permutations over all paths
         pos_perm = np.concatenate([np.expand_dims(pos[0], 0), pos[list(perm)]], axis=0)
         route = []
         total_dist = 0
         final_dist_0 = 0
-        for i in range(1, n):
-            dist_0 = np.sqrt(np.sum(np.square(pos_perm[i])))
-            dist = np.sqrt(np.sum(np.square(pos_perm[i] - pos_perm[i - 1])))
+        for i in range(1, n):  # Attempt to add next node to path
+            dist_0 = np.sqrt(np.sum(np.square(pos_perm[i])))  # Distance from starting node
+            dist = np.sqrt(np.sum(np.square(pos_perm[i] - pos_perm[i - 1])))  # Distance from last node
             if total_dist + dist + dist_0 > max_distance:
                 break
             final_dist_0 = dist_0
@@ -59,38 +29,36 @@ def best_route(pos, max_distance):
     costs = np.array(costs)
     lengths = np.array([len(route) for route in routes])
     max_len = np.max(lengths)
+    # Take paths of maximum length
     costs = costs[lengths == max_len]
     routes = [routes[i] for i, take in enumerate(lengths == max_len) if take]
-    best = np.argmin(costs)
+    best = np.argmin(costs)  # Lowest cost path
     return routes[best], costs[best]
 
 
 def main():
-    pos = np.random.randint(low=-100, high=100, size=(20, 2))
-    max_distance = 200
-    n_clusters = 5
+    pos = np.random.randint(low=-100, high=100, size=(50, 2))
+    max_distance = 250  # Maximum cycle length
+    n_clusters = 10
     start = np.zeros((1, 2))
+    # Split locations into regions using k means
     k_means = KMeans(n_clusters=n_clusters)
     clusters = k_means.fit_predict(pos)
-    # plt.scatter(pos[:, 0], pos[:, 1], c=clusters)
-    # for cluster in range(n_clusters):
-    #     rel = pos[clusters == cluster]
-    #     cycle = np.concatenate([start, rel], axis=0)
-    #     path_pos, path_cost = best_route(cycle, max_distance=max_distance)
-    #     route = np.concatenate([start, rel[np.array(path_pos)], start], axis=0)
-    #     plt.plot(route[:, 0], route[:, 1], label=f'{path_cost:.2f}m')
-    # plt.legend()
-    # plt.show()
+    plt.figure(figsize=(10, 7))
+    plt.scatter(pos[:, 0], pos[:, 1], c=clusters)
     while pos.shape[0]:
         path, cost, selected_cluster = None, None, None
+        # Find the cluster with the best route
         for cluster in range(n_clusters):
-            rel = pos[clusters == cluster]
+            rel = pos[clusters == cluster]  # Locations in cluster
             if not rel.shape[0]:
                 continue
             cycle = np.concatenate([start, rel], axis=0)
+            # Find best route in cluster
             path_pos, path_cost = best_route(cycle, max_distance=max_distance)
             if not path_pos:
                 continue
+            # Compare to other clusters
             if not cost or len(path_pos) > path.shape[0] or (len(path_pos) == path.shape[0] and path_cost < cost):
                 selected_cluster = cluster
                 cost = path_cost
@@ -98,16 +66,17 @@ def main():
         if selected_cluster is None:
             print(f'Could not reach positions {pos}')
             break
+        # Draw route
         route = pos[clusters == selected_cluster][path]
         route = np.concatenate([start, route, start], axis=0)
-        plt.scatter(pos[:, 0], pos[:, 1], c=clusters)
         plt.plot(route[:, 0], route[:, 1], label=f'{cost:.2f}m')
+        # Remove route locations
         mask = np.ones(pos.shape[0], dtype=bool)
         mask[np.argwhere(clusters == selected_cluster)[path]] = False
         pos = pos[mask]
         clusters = clusters[mask]
-        plt.legend()
-        plt.show()
+    plt.legend()
+    plt.show()
 
 
 if __name__ == '__main__':
