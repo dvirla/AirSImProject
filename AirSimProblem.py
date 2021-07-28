@@ -6,6 +6,7 @@ from utils import hashabledict
 from sklearn.cluster import KMeans
 import time
 import random
+
 random.seed(0)
 
 
@@ -20,13 +21,6 @@ class airsimproblem(Problem):
         self.package_groups = {package: clusters[package - 1] for package in initial['packages']}
         self.initial = initial
         self.start = time.time()
-        # self.client = airsim.MultirotorClient()
-        # self.client.reset()
-        # for drone in range(num_drones):
-        #     self.client.enableApiControl(True, vehicle_name=f'drone_{drone}')
-        #     self.client.armDisarm(True, vehicle_name=f'drone_{drone}')
-        #     self.client.takeoffAsync(vehicle_name=f'drone_{drone}').join()
-        #     self.client.moveToPositionAsync(0, 0, -200, 10, vehicle_name=f'drone_{drone}').join()
 
     def actions(self, state):
         """
@@ -58,7 +52,7 @@ class airsimproblem(Problem):
             for i, drone in enumerate(available_drones):
                 if i >= len(free_packages):
                     break
-                if len(drone_package_pairs[drone]) > 0 and\
+                if len(drone_package_pairs[drone]) > 0 and \
                         self.package_groups[drone_package_pairs[drone][0]] != self.package_groups[perm[i]]:
                     action[drone] = drone_package_pairs[drone][0]
                 else:
@@ -100,13 +94,3 @@ class airsimproblem(Problem):
         cost = np.sqrt(np.sum(np.square(dist))) - node.depth
         cost *= time.time() - self.start
         return cost
-        # return -100 * len([0 for location in state['packages'] if location == -1])
-
-    # def TakeOff(self):
-    #     for drone in range(self.num_drones):
-    #         self.client.takeoffAsync(vehicle_name=f'drone_{drone}').join()
-    #
-    #
-    # def Land(self):
-    #     for drone in range(self.num_drones):
-    #         self.client.landAsync(vehicle_name=f'drone_{drone}').join()
