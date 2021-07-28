@@ -3,7 +3,10 @@ from search import Problem
 from collections import defaultdict
 from itertools import permutations
 from utils import hashabledict
+from sklearn.cluster import KMeans
+import time
 import random
+random.seed(0)
 
 
 class airsimproblem(Problem):
@@ -12,6 +15,11 @@ class airsimproblem(Problem):
         self.num_drones = len(initial['drones'])
         self.max_dist = max_dist
         self.packages_locations = packages_locations
+        kmeans = KMeans(n_clusters=5)
+        clusters = kmeans.fit_predict(packages_locations)
+        self.package_groups = {package: clusters[package - 1] for package in initial['packages']}
+        self.initial = initial
+        self.start = time.time()
         # self.client = airsim.MultirotorClient()
         # self.client.reset()
         # for drone in range(num_drones):
@@ -31,14 +39,14 @@ class airsimproblem(Problem):
         available_drones = []
         unavailable_drones = []
         home = []
-        for package, drone in enumerate(state['packages']):
+        for package, drone in state['packages'].items():
             if drone > 0:
                 drone_package_pairs[drone].append(package)
             elif drone == 0:
                 free_packages.append(package)
 
-        for drone, location in enumerate(state['drones']):
-            if location == 0 and len(drone_package_pairs[drone]) < 2:
+        for drone, location in state['drones'].items():
+            if location == 0 and len(drone_package_pairs[drone]) < min(2, len(free_packages)):
                 available_drones.append(drone)
             elif location != 0 and len(drone_package_pairs[drone]) == 0:
                 home.append(drone)
@@ -46,43 +54,53 @@ class airsimproblem(Problem):
                 unavailable_drones.append(drone)
         actions = []
         for perm in permutations(free_packages, min(len(available_drones), len(free_packages))):
-            action = [0] * len(state['drones'])
+            action = hashabledict({drone: 0 for drone in state['drones']})
             for i, drone in enumerate(available_drones):
                 if i >= len(free_packages):
                     break
-                action[drone] = -perm[i]  # -x    Pickup package x
+                if len(drone_package_pairs[drone]) > 0 and\
+                        self.package_groups[drone_package_pairs[drone][0]] != self.package_groups[perm[i]]:
+                    action[drone] = drone_package_pairs[drone][0]
+                else:
+                    action[drone] = -perm[i]  # -x    Pickup package x
             for drone in unavailable_drones:
-                action[drone] = drone_package_pairs[drone][0]  # x     Go to location of package x
+                if drone_package_pairs[drone]:
+                    action[drone] = drone_package_pairs[drone][0]  # x     Go to location of package x
             for drone in home:
                 action[drone] = 0  # 0     Go to home
-            actions.append(tuple(action))
-        print(actions)
-        if len(actions) > 20:
-            return random.sample(actions, 20)
-        if len(actions) == 0:
-            x = 5
+            actions.append(action)
+        actions = list(set(actions))
+        # print(len(actions))
+        if state == self.initial:
+            actions = actions[:20]
+            # return random.choices(actions, k=20)
         return actions
 
     def result(self, state, action):
-        print(action)
-        print([location for location in state['packages']])
+        # print(action)
+        # print([location for location in state['packages'].values()])
         new_state = hashabledict()
-        new_state['drones'] = list(state['drones'])
-        new_state['packages'] = list(state['packages'])
-        for drone, operation in enumerate(action):
-            if operation >= 0:
+        new_state['drones'] = hashabledict({drone: location for drone, location in state['drones'].items()})
+        new_state['packages'] = hashabledict({package: location for package, location in state['packages'].items()})
+        for drone, operation in action.items():
+            package = abs(operation)
+            if operation == 0:
+                new_state['drones'][drone] = 0
+            elif operation > 0:
                 new_state['drones'][drone] = operation
-                new_state['packages'][operation] = -1
+                new_state['packages'][package] = -1
             else:
-                new_state['packages'][operation] = drone
-        new_state['drones'] = tuple(new_state['drones'])
-        new_state['packages'] = tuple(new_state['packages'])
-        print(new_state)
+                new_state['packages'][package] = drone
+        # print(new_state)
         return new_state
 
     def h(self, node):
-        state = node.state
-        return -100 * len([0 for location in state['packages'] if location == -1])
+        dist = [self.packages_locations[loc - 1] - self.packages_locations[package - 1]
+                for package, loc in node.state['packages'].items() if loc != -1]
+        cost = np.sqrt(np.sum(np.square(dist))) - node.depth
+        cost *= time.time() - self.start
+        return cost
+        # return -100 * len([0 for location in state['packages'] if location == -1])
 
     # def TakeOff(self):
     #     for drone in range(self.num_drones):

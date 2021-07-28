@@ -219,8 +219,12 @@ def best_first_graph_search(problem, f):
     frontier = PriorityQueue(min, f)
     frontier.append(node)
     explored = set()
+    max_depth = node.depth
     while frontier:
         node = frontier.pop()
+        if node.depth > max_depth:
+            max_depth = node.depth
+            print(f'max search depth {max_depth}')
         if problem.goal_test(node.state):
             return node
         explored.add(node.state)

@@ -5,23 +5,28 @@ import search
 from AirSimProblem import airsimproblem
 from utils import hashabledict
 import numpy as np
+import time
+
+np.random.seed(0)
 
 
 num_drones = 5
 num_packages = 20
 max_dist = 1e+6
 initial = hashabledict()
-initial['drones'] = tuple(0 for _ in range(num_drones))
-initial['packages'] = tuple(0 for _ in range(num_packages))
+initial['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
+initial['packages'] = hashabledict({i + 1: 0 for i in range(num_packages)})
 
 goal = hashabledict()
-goal['drones'] = tuple(0 for _ in range(num_drones))
-goal['packages'] = tuple(-1 for _ in range(num_packages))
+goal['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
+goal['packages'] = hashabledict({i + 1: -1 for i in range(num_packages)})
 
 packages_locations = np.random.randint(-100, 100, size=(num_packages, 2))  # generating 20 coordinates, ignoring z - assuming on land
 
 asprob = airsimproblem(max_dist, initial, goal, packages_locations)
+now = time.time()
 print(search.astar_search(asprob))
+print(f'done in {time.time() - now:.2f}s')
 
 
 
