@@ -6,6 +6,7 @@ import numpy as np
 import time
 import pickle
 from MctsAirSimProblem import MonteCarloTreeSearchNode
+from copy import copy
 
 np.random.seed(0)
 
@@ -40,7 +41,7 @@ def main():
 
 if __name__ == "__main__":
     num_drones = 5
-    num_packages = 5
+    num_packages = 10
     max_dist = 1e+6
     initial = hashabledict()
     initial['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
@@ -51,5 +52,11 @@ if __name__ == "__main__":
     goal['packages'] = hashabledict({i + 1: -1 for i in range(num_packages)})
 
     root = MonteCarloTreeSearchNode(state=initial, goal=goal)
-    selected_action = root.best_action()
-    print(selected_action)
+    selected_action = copy(root)
+    path = []
+    while not selected_action.is_terminal_node():
+        path.append(selected_action.state['drones'])
+        selected_action = selected_action.best_action()
+
+    path.append(selected_action.state['drones'])
+    print(path)

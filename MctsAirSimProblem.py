@@ -56,10 +56,7 @@ class MonteCarloTreeSearchNode():
             for i, drone in enumerate(available_drones):
                 if i >= len(free_packages):
                     break
-                if len(drone_package_pairs[drone]) > 0:
-                    action[drone] = drone_package_pairs[drone][0]  # drop package x
-                else:
-                    action[drone] = -perm[i]  # -x    Pickup package x
+                action[drone] = -perm[i]  # -x    Pickup package x
             for drone in unavailable_drones:
                 if drone_package_pairs[drone]:
                     action[drone] = drone_package_pairs[drone][0]  # x     Go to location of package x
@@ -141,11 +138,11 @@ class MonteCarloTreeSearchNode():
         return current_node
 
     def best_action(self):
-        simulation_no = 100
+        simulation_no = 10000
 
         for i in range(simulation_no):
             v = self._tree_policy()
             reward = v.rollout()
             v.backpropagate(reward)
-        child = self.best_child(c_param=0.)
-        return child.parent_action
+
+        return self.best_child(c_param=0.)
