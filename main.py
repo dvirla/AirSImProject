@@ -4,6 +4,7 @@ from AirSumRunPath import airsumrunpath
 from utils import hashabledict
 import numpy as np
 import time
+import pickle
 
 np.random.seed(0)
 
@@ -29,6 +30,8 @@ def main():
 
     solution_path = goal_node.path()
     print(f"goal:\n {solution_path}")
+    with open('solution.pkl', 'wb') as f:
+        pickle.dump(solution_path, f)
 
     asrunpath = airsumrunpath(num_drones, packages_locations)
     asrunpath.follow_path(solution_path)
