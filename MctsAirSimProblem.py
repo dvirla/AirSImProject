@@ -3,27 +3,51 @@ from collections import defaultdict
 from itertools import permutations
 from utils import hashabledict
 from copy import copy
+from GraphVisualize import GraphVisualization
 
 
 class MonteCarloTreeSearchNode():
+    graph = GraphVisualization()
+    id = -1
+    num_packages = 10
+    packages_locations = np.random.randint(-100, 100, size=(num_packages, 2))
+
     def __init__(self, state, goal, parent=None, parent_action=None):
         self.state = state
         self.parent = parent
         self.parent_action = parent_action
         self.children = []
         self._number_of_visits = 0
+        MonteCarloTreeSearchNode.id += 1
+        self.id = MonteCarloTreeSearchNode.id
         if parent is None:
             self.depth = 0
+            MonteCarloTreeSearchNode.graph.addEdge(0, self.id)
         else:
             self.depth = self.parent.depth + 1
+            MonteCarloTreeSearchNode.graph.addEdge(self.parent.id, self.id)
         self.minimal_children_depth = float('inf')
         self._untried_actions = self.untried_actions()
         self.goal = goal
+
         return
 
     def untried_actions(self):
         self._untried_actions = self.get_legal_actions(self.state)
         return self._untried_actions
+
+    def get_total_distances_to_go(self):
+        total = 0
+        for drone, destinations in self.parent_action.items():
+            drone_loc = np.array([0, 0])
+            if type(destinations) == int:
+                destinations = [destinations]
+            for dest in destinations:
+                if dest > 0:
+                    dest_loc = MonteCarloTreeSearchNode.packages_locations[dest-1]
+                    total += np.linalg.norm(dest_loc - drone_loc)
+                    drone_loc = dest_loc
+        return total
 
     @staticmethod
     def get_legal_actions(state):
@@ -66,7 +90,8 @@ class MonteCarloTreeSearchNode():
         return actions
 
     def q(self):
-        return -self.depth
+        # return -self.depth
+        return self.get_total_distances_to_go()
 
     def n(self):
         return self._number_of_visits
@@ -138,7 +163,7 @@ class MonteCarloTreeSearchNode():
         return current_node
 
     def best_action(self):
-        simulation_no = 10000
+        simulation_no = 100
 
         for i in range(simulation_no):
             v = self._tree_policy()

@@ -60,3 +60,4 @@ if __name__ == "__main__":
 
     path.append(selected_action.state['drones'])
     print(path)
+    MonteCarloTreeSearchNode.graph.visualize()
