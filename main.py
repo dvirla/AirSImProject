@@ -7,13 +7,15 @@ import time
 import pickle
 from MctsAirSimProblem import MonteCarloTreeSearchNode
 from copy import copy
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 np.random.seed(0)
 
 
 def main():
     num_drones = 5
-    num_packages = 5
+    num_packages = 10
     max_dist = 1e+6
     initial = hashabledict()
     initial['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
@@ -33,14 +35,36 @@ def main():
 
     solution_path = goal_node.path()
     print(f"goal:\n {solution_path}")
+    plt.scatter(packages_locations[:, 0], packages_locations[:, 1])
+    colors = cm.rainbow(np.linspace(0, 1, num_drones))
+    last_node = None
+    total_dist = 0
+    for node in solution_path:
+        if last_node is None:
+            last_node = node
+            continue
+        for drone in range(1, num_drones + 1):
+            pos = np.array([0, 0])
+            last_pos = np.array([0, 0])
+            if node.state['drones'][drone] > 0:
+                pos = packages_locations[node.state['drones'][drone] - 1]
+            if last_node.state['drones'][drone] > 0:
+                last_pos = packages_locations[last_node.state['drones'][drone] - 1]
+            total_dist += np.sqrt(np.sum(np.square(pos - last_pos)))
+            # if drone == 1:
+            #     print(last_pos, pos)
+            plt.plot([last_pos[0], pos[0]], [last_pos[1], pos[1]], color=colors[drone - 1])
+        last_node = node
+    print(total_dist)
+    plt.show()
     with open('solution.pkl', 'wb') as f:
         pickle.dump(solution_path, f)
 
-    asrunpath = airsumrunpath(num_drones, packages_locations)
-    asrunpath.follow_path(solution_path)
+    # asrunpath = airsumrunpath(num_drones, packages_locations)
+    # asrunpath.follow_path(solution_path)
 
 
-if __name__ == "__main__":
+def mcts():
     num_drones = 5
     num_packages = 20
     max_dist = 1e+6
@@ -56,12 +80,25 @@ if __name__ == "__main__":
     selected_action = copy(root)
     path = []
     total_dist = 0
-    while not selected_action.is_terminal_node():
+    loc = MonteCarloTreeSearchNode.packages_locations
+    plt.scatter(loc[:, 0], loc[:, 1])
+    colors = cm.rainbow(np.linspace(0, 1, num_drones))
+    while True:
         if selected_action.parent_action != None:
-            for drone, destinations in selected_action.parent.state['drones'].items():
+            for drone, destination in selected_action.parent_action.items():
+                pos = np.array([0, 0])
+                last_pos = np.array([0, 0])
+                if destination > 0:
+                    pos = loc[destination - 1]
+                if selected_action.parent.state['drones'][drone] > 0:
+                    last_pos = loc[selected_action.parent.state['drones'][drone] - 1]
+                # if drone == 1:
+                #     print(last_pos, pos)
+                plt.plot([last_pos[0], pos[0]], [last_pos[1], pos[1]], color=colors[drone - 1])
+            for drone, destinations in selected_action.state['drones'].items():
                 drone_loc = np.array([0, 0])
-                if selected_action.state['drones'][drone] != 0:
-                    drone_loc = MonteCarloTreeSearchNode.packages_locations[selected_action.state['drones'][drone] - 1]
+                if selected_action.parent.state['drones'][drone] != 0:
+                    drone_loc = MonteCarloTreeSearchNode.packages_locations[selected_action.parent.state['drones'][drone] - 1]
                 if type(destinations) == int:
                     destinations = [destinations]
                 for dest in destinations:
@@ -70,9 +107,16 @@ if __name__ == "__main__":
                         total_dist += np.linalg.norm(dest_loc - drone_loc)
                         drone_loc = dest_loc
         path.append(selected_action.state['drones'])
+        if selected_action.is_terminal_node():
+            break
         selected_action = selected_action.best_action()
+    plt.show()
 
     print(total_dist)
     path.append(selected_action.state['drones'])
     print(path)
     MonteCarloTreeSearchNode.graph.visualize()
+
+
+if __name__ == "__main__":
+    mcts()

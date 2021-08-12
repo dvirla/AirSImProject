@@ -52,7 +52,7 @@ class airsimproblem(Problem):
             for i, drone in enumerate(available_drones):
                 if i >= len(free_packages):
                     break
-                if len(drone_package_pairs[drone]) > 0 and \
+                if len(drone_package_pairs[drone]) > 0 and len(free_packages) == 1 and \
                         self.package_groups[drone_package_pairs[drone][0]] != self.package_groups[perm[i]]:
                     action[drone] = drone_package_pairs[drone][0]
                 else:

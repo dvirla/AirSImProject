@@ -11,7 +11,7 @@ np.random.seed(0)
 class MonteCarloTreeSearchNode():
     graph = GraphVisualization()
     id = -1
-    num_packages = 10
+    num_packages = 20
     packages_locations = np.random.randint(-100, 100, size=(num_packages, 2))
 
     def __init__(self, state, goal, parent=None, parent_action=None):
@@ -28,7 +28,7 @@ class MonteCarloTreeSearchNode():
         else:
             self.depth = self.parent.depth + 1
             MonteCarloTreeSearchNode.graph.addEdge(self.parent.id, self.id)
-        self.minimal_children_depth = float('inf')
+        self.minimal_distance = float('inf')
         self._untried_actions = self.untried_actions()
         self.goal = goal
 
@@ -38,19 +38,31 @@ class MonteCarloTreeSearchNode():
         self._untried_actions = self.get_legal_actions(self.state)
         return self._untried_actions
 
-    def get_total_distances_to_go(self):
+    def get_total_distances(self):
         total = 0
-        for drone, destinations in self.parent.state['drones'].items():
-            drone_loc = np.array([0, 0])
-            if self.state['drones'][drone] != 0:
-                drone_loc = MonteCarloTreeSearchNode.packages_locations[self.state['drones'][drone] - 1]
-            if type(destinations) == int:
-                destinations = [destinations]
-            for dest in destinations:
-                if dest > 0:
-                    dest_loc = MonteCarloTreeSearchNode.packages_locations[dest-1]
-                    total += np.linalg.norm(dest_loc - drone_loc)
-                    drone_loc = dest_loc
+        current = self
+        while current.parent is not None:
+            parent = current.parent
+            for drone in self.state['drones']:
+                pos = np.array([0, 0])
+                parent_pos = np.array([0, 0])
+                if current.state['drones'][drone] != 0:
+                    pos = MonteCarloTreeSearchNode.packages_locations[current.state['drones'][drone] - 1]
+                if parent.state['drones'][drone] != 0:
+                    parent_pos = MonteCarloTreeSearchNode.packages_locations[parent.state['drones'][drone] - 1]
+                total += np.sqrt(np.sum(np.square(pos - parent_pos)))
+            current = parent
+        # for drone, destinations in self.state['drones'].items():
+        #     drone_loc = np.array([0, 0])
+        #     if self.parent.state['drones'][drone] != 0:
+        #         drone_loc = MonteCarloTreeSearchNode.packages_locations[self.parent.state['drones'][drone] - 1]
+        #     if type(destinations) == int:
+        #         destinations = [destinations]
+        #     for dest in destinations:
+        #         if dest > 0:
+        #             dest_loc = MonteCarloTreeSearchNode.packages_locations[dest-1]
+        #             total += np.linalg.norm(dest_loc - drone_loc)
+        #             drone_loc = dest_loc
         return total
 
     @staticmethod
@@ -95,9 +107,10 @@ class MonteCarloTreeSearchNode():
 
     def q(self):
         # return -self.depth
-        t = self.get_total_distances_to_go()
-        print(t)
-        return -t
+        # t = self.get_total_distances()
+        # print(t)
+        # return -t
+        return -self.minimal_distance
         # return np.random.randint(1, 1000)
 
     def n(self):
@@ -133,18 +146,25 @@ class MonteCarloTreeSearchNode():
 
     def rollout(self):
         current_rollout_state = copy(self.state)
-        cur_depth = self.depth
+        distance = self.get_total_distances()
         while current_rollout_state != self.goal:
             possible_moves = self.get_legal_actions(current_rollout_state)
-
             action = self.rollout_policy(possible_moves)
-            current_rollout_state = self.move(current_rollout_state, action)
-            cur_depth += 1
-        return -cur_depth
+            new_rollout_state = self.move(current_rollout_state, action)
+            for drone in self.state['drones']:
+                pos = np.array([0, 0])
+                parent_pos = np.array([0, 0])
+                if new_rollout_state['drones'][drone] != 0:
+                    pos = MonteCarloTreeSearchNode.packages_locations[new_rollout_state['drones'][drone] - 1]
+                if current_rollout_state['drones'][drone] != 0:
+                    parent_pos = MonteCarloTreeSearchNode.packages_locations[current_rollout_state['drones'][drone] - 1]
+                distance += np.sqrt(np.sum(np.square(pos - parent_pos)))
+            current_rollout_state = new_rollout_state
+        return distance
 
     def backpropagate(self, result):
         self._number_of_visits += 1.
-        self.minimal_children_depth = min(self.minimal_children_depth, result)
+        self.minimal_distance = min(self.minimal_distance, result)
         if self.parent:
             self.parent.backpropagate(result)
 
