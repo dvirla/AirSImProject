@@ -23,7 +23,8 @@ def main():
     goal['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
     goal['packages'] = hashabledict({i + 1: -1 for i in range(num_packages)})
 
-    packages_locations = np.random.randint(-100, 100, size=(num_packages, 2))  # generating 20 coordinates, ignoring z - assuming on land
+    packages_locations = np.random.randint(-100, 100, size=(
+    num_packages, 2))  # generating 20 coordinates, ignoring z - assuming on land
 
     asprob = airsimproblem(max_dist, initial, goal, packages_locations)
     now = time.time()
@@ -41,7 +42,7 @@ def main():
 
 if __name__ == "__main__":
     num_drones = 5
-    num_packages = 10
+    num_packages = 20
     max_dist = 1e+6
     initial = hashabledict()
     initial['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
@@ -54,10 +55,24 @@ if __name__ == "__main__":
     root = MonteCarloTreeSearchNode(state=initial, goal=goal)
     selected_action = copy(root)
     path = []
+    total_dist = 0
     while not selected_action.is_terminal_node():
+        if selected_action.parent_action != None:
+            for drone, destinations in selected_action.parent.state['drones'].items():
+                drone_loc = np.array([0, 0])
+                if selected_action.state['drones'][drone] != 0:
+                    drone_loc = MonteCarloTreeSearchNode.packages_locations[selected_action.state['drones'][drone] - 1]
+                if type(destinations) == int:
+                    destinations = [destinations]
+                for dest in destinations:
+                    if dest > 0:
+                        dest_loc = MonteCarloTreeSearchNode.packages_locations[dest - 1]
+                        total_dist += np.linalg.norm(dest_loc - drone_loc)
+                        drone_loc = dest_loc
         path.append(selected_action.state['drones'])
         selected_action = selected_action.best_action()
 
+    print(total_dist)
     path.append(selected_action.state['drones'])
     print(path)
     MonteCarloTreeSearchNode.graph.visualize()

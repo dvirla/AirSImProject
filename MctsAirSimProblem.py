@@ -5,6 +5,8 @@ from utils import hashabledict
 from copy import copy
 from GraphVisualize import GraphVisualization
 
+np.random.seed(0)
+
 
 class MonteCarloTreeSearchNode():
     graph = GraphVisualization()
@@ -38,8 +40,10 @@ class MonteCarloTreeSearchNode():
 
     def get_total_distances_to_go(self):
         total = 0
-        for drone, destinations in self.parent_action.items():
+        for drone, destinations in self.parent.state['drones'].items():
             drone_loc = np.array([0, 0])
+            if self.state['drones'][drone] != 0:
+                drone_loc = MonteCarloTreeSearchNode.packages_locations[self.state['drones'][drone] - 1]
             if type(destinations) == int:
                 destinations = [destinations]
             for dest in destinations:
@@ -91,7 +95,10 @@ class MonteCarloTreeSearchNode():
 
     def q(self):
         # return -self.depth
-        return self.get_total_distances_to_go()
+        t = self.get_total_distances_to_go()
+        print(t)
+        return -t
+        # return np.random.randint(1, 1000)
 
     def n(self):
         return self._number_of_visits
