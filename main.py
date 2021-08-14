@@ -64,59 +64,55 @@ def main():
     # asrunpath.follow_path(solution_path)
 
 
-def mcts():
-    num_drones = 5
-    num_packages = 20
-    max_dist = 1e+6
+def mcts(n_drones, n_packages, n_simulations, package_locations):
     initial = hashabledict()
-    initial['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
-    initial['packages'] = hashabledict({i + 1: 0 for i in range(num_packages)})
+    initial['drones'] = hashabledict({i + 1: 0 for i in range(n_drones)})
+    initial['packages'] = hashabledict({i + 1: 0 for i in range(n_packages)})
 
     goal = hashabledict()
-    goal['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
-    goal['packages'] = hashabledict({i + 1: -1 for i in range(num_packages)})
+    goal['drones'] = hashabledict({i + 1: 0 for i in range(n_drones)})
+    goal['packages'] = hashabledict({i + 1: -1 for i in range(n_packages)})
 
-    root = MonteCarloTreeSearchNode(state=initial, goal=goal)
-    selected_action = copy(root)
+    root = MonteCarloTreeSearchNode(state=initial, goal=goal, n_simulations=n_simulations, package_locations=package_locations)
     path = []
-    total_dist = 0
-    loc = MonteCarloTreeSearchNode.packages_locations
-    plt.scatter(loc[:, 0], loc[:, 1])
-    colors = cm.rainbow(np.linspace(0, 1, num_drones))
+    plt.scatter(package_locations[:, 0], package_locations[:, 1])
+    colors = cm.rainbow(np.linspace(0, 1, n_drones))
+    selected_action = root
+    start = time.time_ns()
     while True:
         if selected_action.parent_action != None:
             for drone, destination in selected_action.parent_action.items():
                 pos = np.array([0, 0])
                 last_pos = np.array([0, 0])
                 if destination > 0:
-                    pos = loc[destination - 1]
+                    pos = package_locations[destination - 1]
                 if selected_action.parent.state['drones'][drone] > 0:
-                    last_pos = loc[selected_action.parent.state['drones'][drone] - 1]
+                    last_pos = package_locations[selected_action.parent.state['drones'][drone] - 1]
                 # if drone == 1:
                 #     print(last_pos, pos)
                 plt.plot([last_pos[0], pos[0]], [last_pos[1], pos[1]], color=colors[drone - 1])
-            for drone, destinations in selected_action.state['drones'].items():
-                drone_loc = np.array([0, 0])
-                if selected_action.parent.state['drones'][drone] != 0:
-                    drone_loc = MonteCarloTreeSearchNode.packages_locations[selected_action.parent.state['drones'][drone] - 1]
-                if type(destinations) == int:
-                    destinations = [destinations]
-                for dest in destinations:
-                    if dest > 0:
-                        dest_loc = MonteCarloTreeSearchNode.packages_locations[dest - 1]
-                        total_dist += np.linalg.norm(dest_loc - drone_loc)
-                        drone_loc = dest_loc
         path.append(selected_action.state['drones'])
         if selected_action.is_terminal_node():
             break
         selected_action = selected_action.best_action()
-    plt.show()
+    # plt.show()
+    t = time.time_ns() - start
+    with open(f'solutions/mcts/{n_drones}_{n_packages}_{n_simulations}_{root.minimal_distance:.0f}_{t}.pkl', 'wb') as f:
+        pickle.dump(root, f)
+    plt.savefig(f'graphs/mcts/{n_drones}_{n_packages}_{n_simulations}_{root.minimal_distance:.0f}_{t}.png')
+    plt.close()
 
-    print(total_dist)
+    print(root.minimal_distance)
     path.append(selected_action.state['drones'])
     print(path)
-    MonteCarloTreeSearchNode.graph.visualize()
+    # MonteCarloTreeSearchNode.graph.visualize()
+    root.graphviz()
+    root.graph.render()
 
 
 if __name__ == "__main__":
-    mcts()
+    for n_drones in (2, 3, 4, 5):
+        for n_packages in (10, 13, 15, 17, 20):
+            package_locations = np.random.randint(-100, 100, size=(n_packages, 2))
+            for n_simulations in (10, 20, 30, 40, 50, 60, 70, 80, 90, 100):
+                mcts(n_drones, n_packages, n_simulations, package_locations)
