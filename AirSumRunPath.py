@@ -38,7 +38,7 @@ class airsumrunpath():
             self.client.moveToPositionAsync(*action)
             sleep(1)
 
-    def follow_path(self, path):
+    def follow_path_astar(self, path):
         drone_paths = {i: [] for i in range(1, self.num_drones + 1)}
         for node in path:
             drones_destinations = node.state['drones']
@@ -53,6 +53,27 @@ class airsumrunpath():
                     x_val, y_val = self.packages_locations[drones_destinations[drone] - 1]
                     drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height))
                     drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height - 30))
+                    drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height))
+                    # self.client.moveToPositionAsync(int(x_val), int(y_val), self.height, self.speed)
+            # sleep(0.5)
+        for drone, drone_path in drone_paths.items():
+            self.client.moveOnPathAsync(drone_path, self.speed, vehicle_name=f'drone_{drone}')
+            time.sleep(0.1)
+
+    def follow_path_mcts(self, path):
+        drone_paths = {i: [] for i in range(1, self.num_drones + 1)}
+        for drones_destinations in path:
+            for drone in range(1, self.num_drones + 1):
+                if drones_destinations[drone] == 0:
+                    # drone_paths[drone].append('home')
+                    # self.client.goHomeAsync(vehicle_name=f"drone_{drone}")
+                    drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
+                    drone_paths[drone].append(airsim.Vector3r(0, 0, self.height - 20))
+                    drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
+                else:
+                    x_val, y_val = self.packages_locations[drones_destinations[drone] - 1]
+                    drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height))
+                    drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), 0))
                     drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height))
                     # self.client.moveToPositionAsync(int(x_val), int(y_val), self.height, self.speed)
             # sleep(0.5)

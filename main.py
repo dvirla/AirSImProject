@@ -111,8 +111,20 @@ def mcts(n_drones, n_packages, n_simulations, package_locations):
 
 
 if __name__ == "__main__":
-    for n_drones in (2, 3, 4, 5):
-        for n_packages in (10, 13, 15, 17, 20):
-            package_locations = np.random.randint(-100, 100, size=(n_packages, 2))
-            for n_simulations in (10, 20, 30, 40, 50, 60, 70, 80, 90, 100):
-                mcts(n_drones, n_packages, n_simulations, package_locations)
+    # for n_drones in (2, 3, 4, 5):
+    #     for n_packages in (10, 13, 15, 17, 20):
+    #         package_locations = np.random.randint(-100, 100, size=(n_packages, 2))
+    #         for n_simulations in (10, 20, 30, 40, 50, 60, 70, 80, 90, 100):
+    #             mcts(n_drones, n_packages, n_simulations, package_locations)
+    with open('5_13_10_1679_308176800.pkl', 'rb') as f:
+        problem = pickle.load(f)
+    path = []
+    selected_action = problem
+    while True:
+       if selected_action.is_terminal_node():
+            break
+       path.append(selected_action.state['drones'])
+       selected_action = selected_action.best_action()
+
+    runpath = airsumrunpath(5, problem.package_locations)
+    runpath.follow_path_mcts(path)
