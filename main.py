@@ -26,7 +26,7 @@ def main():
     goal['packages'] = hashabledict({i + 1: -1 for i in range(num_packages)})
 
     packages_locations = np.random.randint(-100, 100, size=(
-    num_packages, 2))  # generating 20 coordinates, ignoring z - assuming on land
+        num_packages, 2))  # generating 20 coordinates, ignoring z - assuming on land
 
     asprob = airsimproblem(max_dist, initial, goal, packages_locations)
     now = time.time()
@@ -73,7 +73,8 @@ def mcts(n_drones, n_packages, n_simulations, package_locations):
     goal['drones'] = hashabledict({i + 1: 0 for i in range(n_drones)})
     goal['packages'] = hashabledict({i + 1: -1 for i in range(n_packages)})
 
-    root = MonteCarloTreeSearchNode(state=initial, goal=goal, n_simulations=n_simulations, package_locations=package_locations)
+    root = MonteCarloTreeSearchNode(state=initial, goal=goal, n_simulations=n_simulations,
+                                    package_locations=package_locations)
     path = []
     plt.scatter(package_locations[:, 0], package_locations[:, 1])
     colors = cm.rainbow(np.linspace(0, 1, n_drones))
@@ -121,10 +122,10 @@ if __name__ == "__main__":
     path = []
     selected_action = problem
     while True:
-       if selected_action.is_terminal_node():
+        if selected_action.is_terminal_node():
             break
-       path.append(selected_action.state['drones'])
-       selected_action = selected_action.best_action()
+        selected_action = selected_action.best_action()
+        path.append(selected_action.state['drones'])
 
     runpath = airsumrunpath(5, problem.package_locations)
     runpath.follow_path_mcts(path)

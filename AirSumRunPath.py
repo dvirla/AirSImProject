@@ -68,16 +68,20 @@ class airsumrunpath():
                     # drone_paths[drone].append('home')
                     # self.client.goHomeAsync(vehicle_name=f"drone_{drone}")
                     drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
-                    drone_paths[drone].append(airsim.Vector3r(0, 0, 0))
-                    drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
+                    # drone_paths[drone].append(airsim.Vector3r(0, 0, 0))
+                    # drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
                 else:
                     x_val, y_val = self.packages_locations[drones_destinations[drone] - 1]
                     drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height))
-                    drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), 0))
+                    drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), -30))
                     drone_paths[drone].append(airsim.Vector3r(int(x_val), int(y_val), self.height))
                     # self.client.moveToPositionAsync(int(x_val), int(y_val), self.height, self.speed)
             # sleep(0.5)
+        tasks = []
         for drone, drone_path in drone_paths.items():
-            self.client.moveOnPathAsync(drone_path, self.speed, vehicle_name=f'drone_{drone}')
+            print(drone, drone_path)
+            tasks.append(self.client.moveOnPathAsync(drone_path, self.speed, vehicle_name=f'drone_{drone}'))
             time.sleep(0.1)
+        for task in tasks:
+            task.join()
 
