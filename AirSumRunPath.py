@@ -68,7 +68,7 @@ class airsumrunpath():
                     # drone_paths[drone].append('home')
                     # self.client.goHomeAsync(vehicle_name=f"drone_{drone}")
                     drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
-                    drone_paths[drone].append(airsim.Vector3r(0, 0, self.height - 20))
+                    drone_paths[drone].append(airsim.Vector3r(0, 0, 0))
                     drone_paths[drone].append(airsim.Vector3r(0, 0, self.height))
                 else:
                     x_val, y_val = self.packages_locations[drones_destinations[drone] - 1]
