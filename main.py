@@ -1,6 +1,6 @@
 import search
 from AirSimProblem import airsimproblem
-from AirSumRunPath import airsumrunpath
+# from AirSumRunPath import airsumrunpath
 from utils import hashabledict
 import numpy as np
 import time
@@ -13,37 +13,35 @@ import matplotlib.cm as cm
 np.random.seed(0)
 
 
-def main():
-    num_drones = 5
-    num_packages = 10
-    max_dist = 1e+6
+def main(n_drones=5, n_packages=10, max_dist=1e+6):
     initial = hashabledict()
-    initial['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
-    initial['packages'] = hashabledict({i + 1: 0 for i in range(num_packages)})
+    initial['drones'] = hashabledict({i + 1: 0 for i in range(n_drones)})
+    initial['packages'] = hashabledict({i + 1: 0 for i in range(n_packages)})
 
     goal = hashabledict()
-    goal['drones'] = hashabledict({i + 1: 0 for i in range(num_drones)})
-    goal['packages'] = hashabledict({i + 1: -1 for i in range(num_packages)})
+    goal['drones'] = hashabledict({i + 1: 0 for i in range(n_drones)})
+    goal['packages'] = hashabledict({i + 1: -1 for i in range(n_packages)})
 
-    packages_locations = np.random.randint(-100, 100, size=(
-        num_packages, 2))  # generating 20 coordinates, ignoring z - assuming on land
+    packages_locations = np.random.randint(-100, 100, size=(n_packages, 2))
 
     asprob = airsimproblem(max_dist, initial, goal, packages_locations)
     now = time.time()
+    start = time.time_ns()
     goal_node = search.astar_search(asprob)
+    t = time.time_ns() - start
     print(f'done in {time.time() - now:.2f}s\n')
 
     solution_path = goal_node.path()
     print(f"goal:\n {solution_path}")
     plt.scatter(packages_locations[:, 0], packages_locations[:, 1])
-    colors = cm.rainbow(np.linspace(0, 1, num_drones))
+    colors = cm.rainbow(np.linspace(0, 1, n_drones))
     last_node = None
     total_dist = 0
     for node in solution_path:
         if last_node is None:
             last_node = node
             continue
-        for drone in range(1, num_drones + 1):
+        for drone in range(1, n_drones + 1):
             pos = np.array([0, 0])
             last_pos = np.array([0, 0])
             if node.state['drones'][drone] > 0:
@@ -56,9 +54,13 @@ def main():
             plt.plot([last_pos[0], pos[0]], [last_pos[1], pos[1]], color=colors[drone - 1])
         last_node = node
     print(total_dist)
-    plt.show()
-    with open('solution.pkl', 'wb') as f:
-        pickle.dump(solution_path, f)
+    # plt.show()
+    # with open(f'solutions/astar/{n_drones}_{n_packages}_{total_dist:.0f}_{t}.pkl', 'wb') as f:
+    #     pickle.dump(root, f)
+    plt.savefig(f'graphs/astar/{n_drones}_{n_packages}_{total_dist:.0f}_{t}.png')
+    plt.close()
+    # with open('solution.pkl', 'wb') as f:
+    #     pickle.dump(solution_path, f)
 
     # asrunpath = airsumrunpath(num_drones, packages_locations)
     # asrunpath.follow_path(solution_path)
@@ -117,15 +119,18 @@ if __name__ == "__main__":
     #         package_locations = np.random.randint(-100, 100, size=(n_packages, 2))
     #         for n_simulations in (10, 20, 30, 40, 50, 60, 70, 80, 90, 100):
     #             mcts(n_drones, n_packages, n_simulations, package_locations)
-    with open('5_13_10_1679_308176800.pkl', 'rb') as f:
-        problem = pickle.load(f)
-    path = []
-    selected_action = problem
-    while True:
-        if selected_action.is_terminal_node():
-            break
-        selected_action = selected_action.best_action()
-        path.append(selected_action.state['drones'])
-
-    runpath = airsumrunpath(5, problem.package_locations)
-    runpath.follow_path_mcts(path)
+    for n_drones in (2, 3, 4, 5):
+        for n_packages in (10, 13, 15, 17, 20):
+            main(n_drones, n_packages)
+    # with open('5_13_10_1679_308176800.pkl', 'rb') as f:
+    #     problem = pickle.load(f)
+    # path = []
+    # selected_action = problem
+    # while True:
+    #     if selected_action.is_terminal_node():
+    #         break
+    #     selected_action = selected_action.best_action()
+    #     path.append(selected_action.state['drones'])
+    #
+    # runpath = airsumrunpath(5, problem.package_locations)
+    # runpath.follow_path_mcts(path)

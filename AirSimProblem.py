@@ -92,5 +92,5 @@ class airsimproblem(Problem):
         dist = [self.packages_locations[loc - 1] - self.packages_locations[package - 1]
                 for package, loc in node.state['packages'].items() if loc != -1]
         cost = np.sqrt(np.sum(np.square(dist))) - node.depth
-        cost *= time.time() - self.start
+        cost /= time.time() - self.start
         return cost
